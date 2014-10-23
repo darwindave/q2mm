@@ -21,7 +21,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-re_float = '[+-]? * (?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?'
+re_float = '[+-]?\s?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?'
 re_substr_name = '[\w\s\-\=\(\)\[\]]+?(?=\s+\d+[\n\r])'
 # Used for mmo files.
 re_bond = re.compile(
