@@ -180,6 +180,7 @@ class GaussLog(File):
             section_coords_standard = False
             section_convergence = False
             section_optimization = False
+            found_opt_structure = False
             for i, line in enumerate(f):
 
                 # look for start of optimization section of log file
@@ -188,14 +189,22 @@ class GaussLog(File):
                     section_optimization = False
                     logger.log(2, '{} end optimization section'.format(i+1))
                 if not section_optimization and \
-                        'Search for a local minimum.' in line:
+                        'Search for a local minimum.' in line or \
+                        'Search for a saddle point of order' in line:
                     section_optimization = True
                     logger.log(2, '{} start optimization section'.format(i+1))
                     
                 if section_optimization:
 
+                    # end of a structure?
+                    if found_opt_structure is True and 'Rotational constants' in line:
+                        found_opt_structure = False
+
                     # start of a structure
                     if 'Step number' in line:
+                        # decided this was needed. extra structure at start of logs
+                        # was messing things up.
+                        found_opt_structure = True
                         structures.append(Structure())
                         current_structure = structures[-1]
                         logger.log(2, '{} added structure (currently {})'.format(
@@ -215,11 +224,15 @@ class GaussLog(File):
                     if 'Converged?' in line:
                         section_convergence = True
                         logger.log(2, '{} start convergence section'.format(i+1))
-            
+                        
+                    # structure might appear without it being in this
+                    # optimization section. that's why "found_opt_structure"
+                    # is necessary.
                     # look for input coords
-                    if coords_type == 'input' or coords_type == 'both':
+                    if coords_type == 'input' or coords_type == 'both' and \
+                            found_opt_structure is True:
                         # end of input coords for a given structure
-                        if section_coords_input and 'Distance matrix' in line:
+                        if section_coords_input and 'Distance matrix' in line: # follows coords
                             section_coords_input = False
                             logger.log(2, '{} end input coordinates section ({} atoms)'.format(
                                     i+1, count_atom))
@@ -253,7 +266,8 @@ class GaussLog(File):
                             logger.log(2, '{} start input coordinates section'.format(i+1))
 
                     # look for standard coords
-                    if coords_type == 'standard' or coords_type == 'both':
+                    if coords_type == 'standard' or coords_type == 'both' and \
+                            found_opt_structure is True:
                         # end of coords for a given structure
                         if section_coords_standard and \
                                 ('Rotational constants' in line or
